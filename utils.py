@@ -41,4 +41,4 @@ def plot_metrics(train_losses, val_losses, train_accuracies, val_accuracies):
     plt.legend()
     
     plt.tight_layout()
-    plt.show() # Displays the graph interactively instead of saving it
+    plt.savefig('image.png')
