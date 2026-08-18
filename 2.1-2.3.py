@@ -1,10 +1,9 @@
 import torch
-import urllib.request
-from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 from transformers import ViTImageProcessor, ViTForImageClassification
-import torch.nn.functional as F
+from utils import load_sample_image, extract_cls_attention_map
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model_name = 'google/vit-base-patch16-224'
@@ -14,52 +13,40 @@ processor = ViTImageProcessor.from_pretrained(model_name)
 model = ViTForImageClassification.from_pretrained(model_name, output_attentions=True).to(device)
 model.eval()
 
-url = "https://raw.githubusercontent.com/EliSchwartz/imagenet-sample-images/master/n02099601_golden_retriever.JPEG"
-urllib.request.urlretrieve(url, "sample_image.jpg")
-image = Image.open("sample_image.jpg").convert("RGB")
-
+image = load_sample_image()
 inputs = processor(images=image, return_tensors="pt").to(device)
 
 with torch.no_grad():
     outputs = model(**inputs)
 
-logits = outputs.logits
-predicted_class_idx = logits.argmax(-1).item()
-predicted_label = model.config.id2label[predicted_class_idx]
-print(f"\nTop-1 Prediction: {predicted_label}")
+pred_idx = outputs.logits.argmax(-1).item()
+pred_label = model.config.id2label[pred_idx]
+print(f"Top-1 Prediction: {pred_label}")
 
-final_layer_attention = outputs.attentions[-1]
+# Extract spatial attention map via utils helper
+att_map_14x14 = extract_cls_attention_map(outputs.attentions, layer_idx=-1)
 
-mean_attention = final_layer_attention.mean(dim=1)
+# Upsample to image dimensions
+att_resized = Image.fromarray(np.uint8(255 * att_map_14x14), mode='L').resize((224, 224), Image.Resampling.BILINEAR)
+att_overlay = np.array(att_resized) / 255.0
 
-cls_attention = mean_attention[0, 0, 1:]
+orig_224 = image.resize((224, 224))
 
-attention_map = cls_attention.reshape(14, 14).cpu().numpy()
-
-attention_map = (attention_map - attention_map.min()) / (attention_map.max() - attention_map.min())
-
-attention_img = Image.fromarray(np.uint8(255 * attention_map), mode='L')
-attention_img = attention_img.resize((224, 224), resample=Image.Resampling.BILINEAR)
-attention_resized = np.array(attention_img) / 255.0
-
-orig_img_resized = image.resize((224, 224))
-
-plt.figure(figsize=(12, 5))
-
+plt.figure(figsize=(12, 4.5))
 plt.subplot(1, 3, 1)
-plt.imshow(orig_img_resized)
-plt.title(f"Original Image\nPred: {predicted_label}")
+plt.imshow(orig_224)
+plt.title(f"Input Image\nPred: {pred_label}", fontweight='bold')
 plt.axis('off')
 
 plt.subplot(1, 3, 2)
-plt.imshow(attention_map, cmap='hot')
-plt.title("14x14 Attention Map")
+plt.imshow(att_map_14x14, cmap='hot')
+plt.title("14x14 [CLS] Attention Map", fontweight='bold')
 plt.axis('off')
 
 plt.subplot(1, 3, 3)
-plt.imshow(orig_img_resized)
-plt.imshow(attention_resized, cmap='Reds', alpha=0.6)
-plt.title("Attention Overlay")
+plt.imshow(orig_224)
+plt.imshow(att_overlay, cmap='Reds', alpha=0.55)
+plt.title("Attention Heatmap Overlay", fontweight='bold')
 plt.axis('off')
 
 plt.tight_layout()
