@@ -52,7 +52,7 @@ plt.figure(figsize=(5.5, 4.5))
 bars = plt.bar(['[CLS] Token', 'Mean-Pooled Patches'], [acc_cls, acc_mean], color=['#1f77b4', '#ff7f0e'], width=0.55)
 plt.ylabel('Classification Accuracy (%)', fontweight='bold')
 plt.title('Linear Probing on ViT Representations', fontweight='bold')
-plt.ylim(0, 100)
+plt.ylim(0, 110)
 for bar in bars:
     yval = bar.get_height()
     plt.text(bar.get_x() + bar.get_width()/2, yval + 1.5, f"{yval:.2f}%", ha='center', va='bottom', fontweight='bold')
