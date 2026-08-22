@@ -63,7 +63,7 @@ plt.figure(figsize=(8, 5))
 bars = plt.bar(accuracies.keys(), accuracies.values(), color=['#1f77b4', '#ff7f0e', '#2ca02c'])
 plt.title("CLIP Zero-Shot Accuracy on STL-10\nEffect of Prompt Engineering", fontweight='bold')
 plt.ylabel("Accuracy (%)")
-plt.ylim(0, 100)
+plt.ylim(0, 110)
 for bar in bars:
     yval = bar.get_height()
     plt.text(bar.get_x() + bar.get_width()/2, yval + 1.5, f"{yval:.2f}%", ha='center', va='bottom', fontweight='bold')
@@ -87,7 +87,6 @@ T_umap_pre = umap_pre[len(I_subset):]
 
 
 print("Computing Procrustes alignment (SVD)...")
-# Pair all 8,000 image embeddings with their ground-truth text embeddings
 Y_paired = T_features[labels_np] 
 X_paired = image_features_np     
 
